@@ -7,17 +7,10 @@
   Support: 2.7+, 3+
 """
 
-from __future__ import print_function
-import sys
 import os
-import traceback
-import argparse
-if sys.version_info.major == 2:
-    input = raw_input
-from configset import configset
-from make_colors import make_colors
-import signal
+import sys
 from enum import IntEnum
+
 
 class IDMNotFound(Exception):
     pass
@@ -32,15 +25,13 @@ class IDMConfirmOption(IntEnum):
 
 if not 'linux' in sys.platform:
     import comtypes.client as cc
-    import comtypes
     from comtypes import automation
     from pythoncom import CoInitialize
 else:
-    raise OSNotSupport(make_colors('This only for Windows OS !'))
+    raise OSNotSupport('This only for Windows OS !')
 
 class IDMan:
     PID = os.getpid()
-    CONFIG = configset()
     
     def __init__(self):
         CoInitialize()
@@ -50,7 +41,7 @@ class IDMan:
         if not os.path.isfile(self.tlb):
             #print("It seem IDM not installed, please install first !")
             #sys.exit("It seem IDM not installed, please install first !")
-            raise IDMNotFound(make_colors("It seem IDM (Internet Download Manager) not installed, please install first !", 'lw', 'r'))
+            raise IDMNotFound("It seem IDM (Internet Download Manager) not installed, please install first !")
 
     def get_from_clipboard(self):
         try:
@@ -80,7 +71,7 @@ class IDMan:
         try:
             import comtypes.gen.IDManLib as idman
         except ImportError:
-            raise IDMNotFound(make_colors("Please install 'Internet Download Manager' first !", 'lw', 'r'))
+            raise IDMNotFound("Please install 'Internet Download Manager' first !")
         idman1 = cc.CreateObject(idman.CIDMLinkTransmitter, None, None, idman.ICIDMLinkTransmitter2)
         if path_to_save:
             os.path.realpath(path_to_save)
@@ -104,64 +95,5 @@ class IDMan:
         reserved2.vt = automation.VT_EMPTY
         
         #idman1.SendLinkToIDM(link, referrer, cookie, postData, user, password, path_to_save, output, lflag)
-        try:
-            idman1.SendLinkToIDM2(link, referrer, cookie, postData, user, password, path_to_save, output, lflag, reserved1, reserved2)
-        except Exception as e:
-            print("Error: {}".format(make_colors(str(e), 'lw', 'r')))
+        idman1.SendLinkToIDM2(link, referrer, cookie, postData, user, password, path_to_save, output, lflag, reserved1, reserved2)
 
-    def docs(self):
-        print(make_colors("uppercase words is VALUE NAME", 'lc'))
-        print("\n")
-        print(make_colors('download:path:DIR_NAME', 'ly'))
-        print(make_colors('download:config:1 or 0', 'lg'))
-        
-    def usage(self):
-        description = make_colors("Command line downloader with/Via Internet Download Manager(IDM), type 'c' for get url from clipboard", 'lg')
-        parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description = description)
-        parse.add_argument('URLS', action='store', help='url to download, or "c" to get url from clipboard', nargs = '*')
-        parse.add_argument('-p', '--path', action='store', help='Path to save', default=os.getcwd())
-        parse.add_argument('-o', '--output', help='Save with different name', action='store')
-        parse.add_argument('-c', '--confirm', help='Confirm before download', action='store_true')
-        #parse.add_argument('-C', '--clip', help='Get URL from clipboard', action='store_true')
-        parse.add_argument('-r', '--referrer', help='Url referrer', action='store')
-        parse.add_argument('-C', '--cookie', help='Cookie string or dict', action='store', type = str)
-        parse.add_argument('-D', '--post-data', help='Post Data string or dict', action='store', type = str)
-        parse.add_argument('-U', '--username', help='Username if require', action='store', type = str)
-        parse.add_argument('-P', '--password', help='Password if require', action='store', type = str)
-        parse.add_argument('-ua', '--user-agent', help='Send with custom User-Agent string', action='store')
-        parse.add_argument('--config',  help = 'set config, format section:option:value, for list valid section/option type "doc"', action = 'store')
-        if len(sys.argv) ==1:
-            parse.print_help()
-        else:
-            try:
-                if sys.argv[1] == '--config' and sys.argv[2] == 'doc':
-                    self.docs()
-                    os.kill(self.PID, signal.SIGTERM)
-                elif sys.argv[1] == '--config' and len(sys.argv) > 2:
-                    print(f"check_1 = {sys.argv[2].split(":", 2)}")
-                    if len(sys.argv[2].split(":", 2)) == 3:
-                        section, option, value = sys.argv[2].split(":", 2)
-                        self.CONFIG.write_config(section, option, value)
-                        os.kill(self.PID, signal.SIGTERM)
-                    else:
-                        print(make_colors("INVALID config parameter/argument !", 'lw', 'r'))
-                        os.kill(self.PID, signal.SIGTERM)
-            except IndexError:
-                pass
-            except:
-                print(traceback.format_exc())
-            args = parse.parse_args()
-            if args.config == 'doc':
-                self.docs()
-            else:
-                download_path = args.path or self.CONFIG.get_config('download', 'path')
-                confirm = args.confirm or self.CONFIG.get_config('download', 'confirm')
-                user_agent = args.user_agent or self.CONFIG.get_config('data', 'user_agent')
-                #def download(self, link, path_to_save=None, output=None, referrer=None, cookie=None, postData=None, user=None, password=None, confirm=False, clip=False, user_agent=None):
-                for url in args.URLS:
-                    self.download(url, download_path, args.output, args.referrer, args.cookie, args.post_data, args.username, args.password, confirm, user_agent)
-
-
-if __name__ == '__main__':
-    c = IDMan()
-    c.usage()

@@ -41,11 +41,8 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(),
     install_requires=[
-        'argparse',
         'pypiwin32; platform_system=="Windows"',
         'comtypes; platform_system=="Windows"', 
-        'configset', 
-        'make_colors'
     ],
     extras_require={
         'pyidm': [],
