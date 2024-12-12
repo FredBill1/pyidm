@@ -45,7 +45,6 @@ setup(
         'pypiwin32; platform_system=="Windows"',
         'comtypes; platform_system=="Windows"', 
         'configset', 
-        'pydebugger',
         'make_colors'
     ],
     extras_require={

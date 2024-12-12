@@ -17,7 +17,7 @@ if sys.version_info.major == 2:
 from configset import configset
 from make_colors import make_colors
 import signal
-from pydebugger.debug import debug
+from enum import IntEnum
 
 class IDMNotFound(Exception):
     pass
@@ -25,20 +25,25 @@ class IDMNotFound(Exception):
 class OSNotSupport(Exception):
     pass
 
+class IDMConfirmOption(IntEnum):
+    SHOW_DIALOG = 0
+    HIDE_DIALOG = 1
+    ADD_TO_QUEUE = 2
+
 if not 'linux' in sys.platform:
     import comtypes.client as cc
     import comtypes
     from comtypes import automation
+    from pythoncom import CoInitialize
 else:
     raise OSNotSupport(make_colors('This only for Windows OS !'))
 
-
-class IDMan(object):
+class IDMan:
     PID = os.getpid()
     CONFIG = configset()
     
     def __init__(self):
-        super(IDMan, self)
+        CoInitialize()
         self.tlb = r'c:\Program Files\Internet Download Manager\idmantypeinfo.tlb'
         if not os.path.isfile(self.tlb):
             self.tlb = r'c:\Program Files (x86)\Internet Download Manager\idmantypeinfo.tlb'
@@ -60,14 +65,12 @@ class IDMan(object):
         return clipboard.paste()
 
     #def download(self, link, path_to_save=None, output=None, referrer=None, cookie=None, postData=None, user=None, password=None, confirm = False, lflag = None, clip=False):
-    def download(self, link, path_to_save=None, output=None, referrer=None, cookie=None, postData=None, user=None, password=None, confirm=False, user_agent=None, clip=False):
+    def download(self, link, path_to_save=None, output=None, referrer=None, cookie=None, postData=None, user=None, password=None, confirm=IDMConfirmOption.HIDE_DIALOG, user_agent=None, clip=False):
         
-        lflag = 5
+        lflag = confirm
         
         if clip or link == 'c':
             link = self.get_from_clipboard()
-        if confirm:
-            lflag = 0
         try:
             cc.GetModule(['{ECF21EAB-3AA8-4355-82BE-F777990001DD}', 1, 0])
         except:
@@ -105,8 +108,6 @@ class IDMan(object):
             idman1.SendLinkToIDM2(link, referrer, cookie, postData, user, password, path_to_save, output, lflag, reserved1, reserved2)
         except Exception as e:
             print("Error: {}".format(make_colors(str(e), 'lw', 'r')))
-        else:
-            print("\n", make_colors("Link sent to IDM successfully.", 'b', 'y'))        
 
     def docs(self):
         print(make_colors("uppercase words is VALUE NAME", 'lc'))
@@ -137,7 +138,7 @@ class IDMan(object):
                     self.docs()
                     os.kill(self.PID, signal.SIGTERM)
                 elif sys.argv[1] == '--config' and len(sys.argv) > 2:
-                    debug(check_1 = sys.argv[2].split(":", 2))
+                    print(f"check_1 = {sys.argv[2].split(":", 2)}")
                     if len(sys.argv[2].split(":", 2)) == 3:
                         section, option, value = sys.argv[2].split(":", 2)
                         self.CONFIG.write_config(section, option, value)
